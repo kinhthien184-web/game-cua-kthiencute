@@ -1,0 +1,178 @@
+<a href="https://www.google.com" target="_blank">
+  <button style="padding:10px 20px;border-radius:10px;background:#4CAF50;color:white;border:none;">
+    🔍 Vào Google
+  </button>
+</a>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chaos Game ULTRA</title>
+
+<style>
+body{margin:0;overflow:hidden;background:#0f172a;color:#fff;font-family:Arial;text-align:center}
+#game{position:relative;width:100vw;height:80vh;background:#020617;overflow:hidden}
+#player{position:absolute;width:50px;height:50px;left:100px}
+img{width:100%;height:100%}
+.obj,.bossBullet{position:absolute;width:50px;height:50px;right:-60px}
+.coin{position:absolute;width:30px;height:30px;right:-40px}
+#overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:40px;background:rgba(0,0,0,0.6);z-index:10}
+#boss{position:absolute;width:150px;height:150px;right:50px;top:20%;display:none;filter:drop-shadow(0 0 20px red)}
+</style>
+</head>
+<body>
+
+<h2>🎮 Chaos Game ULTRA</h2>
+<div id="score">Score: 0</div>
+<div id="hp">HP: 3</div>
+
+<div id="game">
+  <div id="overlay">KHÔNG ĐƯỢC CHẠM ĐẤT!</div>
+  <!-- đổi player thành tungtungtungsahur (icon tạm meme) -->
+  <div id="player"><img src="https://cdn-icons-png.flaticon.com/512/616/616430.png"></div>
+  <!-- boss rõ hơn + ngầu hơn -->
+  <div id="boss"><img src="https://cdn-icons-png.flaticon.com/512/4712/4712035.png"></div>
+</div>
+
+<script>
+let player=document.getElementById('player');
+let game=document.getElementById('game');
+let scoreEl=document.getElementById('score');
+let hpEl=document.getElementById('hp');
+let overlay=document.getElementById('overlay');
+let boss=document.getElementById('boss');
+
+// âm thanh
+let jumpSound=new Audio('https://www.soundjay.com/buttons/sounds/button-16.mp3');
+let coinSound=new Audio('https://www.soundjay.com/misc/sounds/coin-drop-4.mp3');
+let hitSound=new Audio('https://www.soundjay.com/button/sounds/beep-10.mp3');
+
+let y,velocity,gravity=0.8;
+let score=0,hp=3,gameOver=false,invincible=true;
+let speed=7;
+let bossMode=false;
+
+function init(){
+  y=game.clientHeight/2; velocity=-8;
+  score=0; hp=3; gameOver=false; invincible=true; bossMode=false;
+  scoreEl.innerText='Score: 0'; hpEl.innerText='HP: 3';
+  player.style.top=y+'px';
+  document.querySelectorAll('.obj,.coin,.bossBullet').forEach(e=>e.remove());
+
+  overlay.style.display='flex';
+  setTimeout(()=>overlay.style.display='none',2000);
+  setTimeout(()=>invincible=false,3000);
+
+  setInterval(spawn,800);
+}
+
+function jump(){ if(!gameOver){ velocity=-13; jumpSound.play(); }}
+document.addEventListener('keydown',e=>{if(e.code==='Space')jump();});
+document.addEventListener('click',jump);
+
+function spawn(){
+  if(gameOver||bossMode) return;
+
+  if(score>=15 && !bossMode){ startBoss(); return; }
+
+  if(Math.random()<0.7){
+    let obs=document.createElement('div');
+    obs.className='obj';
+    // đổi obstacle (không phải chó nữa)
+    obs.innerHTML='<img src="https://cdn-icons-png.flaticon.com/512/616/616408.png">';
+    obs.style.top=Math.random()*(game.clientHeight-60)+'px';
+    obs.style.right='-60px';
+    game.appendChild(obs);
+
+    let move=setInterval(()=>{
+      if(gameOver){clearInterval(move);return;}
+      let r=parseInt(obs.style.right); r+=speed;
+      obs.style.right=r+'px';
+
+      let a=player.getBoundingClientRect();
+      let b=obs.getBoundingClientRect();
+      if(!invincible && a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top){
+        obs.remove(); clearInterval(move);
+        hp--; hpEl.innerText='HP: '+hp; hitSound.play();
+        if(hp<=0){gameOver=true; alert('Game Over! '+score);} 
+      }
+
+      if(r>window.innerWidth){obs.remove(); clearInterval(move); score++; scoreEl.innerText='Score: '+score;}
+    },20);
+  } else {
+    let coin=document.createElement('div');
+    coin.className='coin';
+    coin.innerHTML='<img src="https://cdn-icons-png.flaticon.com/512/138/138292.png">';
+    coin.style.top=Math.random()*(game.clientHeight-40)+'px';
+    coin.style.right='-40px';
+    game.appendChild(coin);
+
+    let move=setInterval(()=>{
+      if(gameOver){clearInterval(move);return;}
+      let r=parseInt(coin.style.right); r+=speed;
+      coin.style.right=r+'px';
+
+      let a=player.getBoundingClientRect();
+      let b=coin.getBoundingClientRect();
+      if(a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top){
+        coin.remove(); clearInterval(move);
+        score+=5; scoreEl.innerText='Score: '+score; coinSound.play();
+      }
+
+      if(r>window.innerWidth){coin.remove(); clearInterval(move);}    
+    },20);
+  }
+}
+
+// boss fight mạnh hơn
+function startBoss(){
+  bossMode=true;
+  boss.style.display='block';
+
+  let shoot=setInterval(()=>{
+    if(gameOver){clearInterval(shoot);return;}
+
+    // bắn 3 viên 1 lúc (spread)
+    for(let i=0;i<3;i++){
+      let bullet=document.createElement('div');
+      bullet.className='bossBullet';
+      bullet.innerHTML='<img src="https://cdn-icons-png.flaticon.com/512/231/231682.png" style="background:white;border-radius:50%">';
+      bullet.style.top=(Math.random()*(game.clientHeight-40))+'px';
+      bullet.style.right='150px';
+      game.appendChild(bullet);
+
+      let move=setInterval(()=>{
+        if(gameOver){clearInterval(move);return;}
+        let r=parseInt(bullet.style.right); r+=12;
+        bullet.style.right=r+'px';
+
+        let a=player.getBoundingClientRect();
+        let b=bullet.getBoundingClientRect();
+        if(a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top){
+          bullet.remove(); clearInterval(move);
+          hp--; hpEl.innerText='HP: '+hp; hitSound.play();
+          if(hp<=0){gameOver=true; alert('Boss hủy diệt bạn 💀');}
+        }
+
+        if(r>window.innerWidth){bullet.remove(); clearInterval(move);}        
+      },20);
+    }
+  },500); // bắn nhanh hơn
+}
+
+function update(){
+  if(!gameOver){
+    velocity+=gravity; y+=velocity;
+    if(!invincible && y>=game.clientHeight-40){gameOver=true; alert('Chạm đất = thua 💀');}
+    if(y<0) y=0;
+    player.style.top=y+'px';
+  }
+  requestAnimationFrame(update);
+}
+
+init(); update();
+</script>
+
+</body>
+</html>
